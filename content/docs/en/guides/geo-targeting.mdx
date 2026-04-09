@@ -1,0 +1,125 @@
+---
+title: 'Geo Targeting'
+description: 'Target proxies by country, region, or city'
+---
+
+Soxway supports precise geo-targeting at three levels: **country**, **region**, and **city**.
+
+## Available Locations
+
+Use the Geo API to discover available locations. These endpoints are **public** and don't require authentication.
+
+### List Countries
+
+```bash
+curl "https://api.soxway.io/v1/geo/countries?type=residential"
+```
+
+```json
+{
+  "data": [
+    { "code": "US", "name": "United States" },
+    { "code": "DE", "name": "Germany" },
+    { "code": "GB", "name": "United Kingdom" }
+  ],
+  "total": 195
+}
+```
+
+### List Regions
+
+```bash
+curl "https://api.soxway.io/v1/geo/regions?country=US&type=residential"
+```
+
+### List Cities
+
+```bash
+curl "https://api.soxway.io/v1/geo/cities?country=US&type=residential"
+```
+
+> **Note:**
+  Available locations vary by proxy type. Mobile proxies may have fewer city-level options than residential.
+
+
+## Targeting Levels
+
+### Country Only
+
+The simplest targeting. The proxy will use an IP from anywhere in the specified country.
+
+```json
+{
+  "type": "residential",
+  "country": "US",
+  "behavior": "rotate"
+}
+```
+
+### Country + Region
+
+Narrow down to a specific state or region within a country.
+
+```json
+{
+  "type": "residential",
+  "country": "US",
+  "region": "California",
+  "behavior": "rotate"
+}
+```
+
+### Country + City
+
+The most precise targeting. Get an IP from a specific city.
+
+```json
+{
+  "type": "residential",
+  "country": "US",
+  "region": "California",
+  "city": "Los Angeles",
+  "behavior": "rotate"
+}
+```
+
+> **Warning:**
+  City-level targeting requires specifying a valid `country` code. The `country` field uses **ISO 3166-1 alpha-2** codes (e.g., `US`, `DE`, `GB`).
+
+
+## Changing Location
+
+Update a proxy's location at any time:
+
+```bash
+curl -X PUT https://api.soxway.io/v1/proxies/\{id\} \
+  -H "Authorization: Bearer YOUR_TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "country": "DE",
+    "region": "Bavaria",
+    "city": "Munich"
+  }'
+```
+
+## Tips
+
+
+
+  #### Cache geo data
+
+    Countries, regions, and cities don't change often. Cache the Geo API responses and refresh daily.
+  
+
+  #### Start broad, then narrow
+
+    If you don't need city-level precision, target by country only for the best IP availability and speed.
+  
+
+  #### Check availability per type
+
+    Pass the `type` parameter to see locations available for your specific proxy type.
+  
+
+
+

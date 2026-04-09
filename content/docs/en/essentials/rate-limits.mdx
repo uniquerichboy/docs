@@ -1,0 +1,145 @@
+---
+title: 'Rate Limits'
+description: 'API rate limiting policies and how to handle them'
+---
+
+All API endpoints are rate limited to ensure fair usage and protect against abuse. Limits are applied per user (authenticated) or per IP (unauthenticated).
+
+## Rate Limit Tiers
+
+
+
+  #### Public API
+
+    | Window | Limit | Scope |
+    |--------|-------|-------|
+    | Per minute | 60 requests | Per user ID (or per IP if unauthenticated) |
+    | Per hour | 1,000 requests | Per user ID (or per IP) |
+    | Per day | 10,000 requests | Per user ID (or per IP) |
+  
+
+  #### Auth Endpoints
+
+    | Window | Limit | Scope |
+    |--------|-------|-------|
+    | Per minute | 5 requests | Per IP address |
+
+    > **Warning:**
+      The token issuance endpoint (`POST /v1/auth/token`) has strict rate limiting to prevent brute-force attacks.
+    
+  
+
+  #### Geo Endpoints
+
+    | Window | Limit | Scope |
+    |--------|-------|-------|
+    | Per minute | 30 requests | Per IP address |
+
+    Geo endpoints (countries, regions, cities) do not require authentication.
+  
+
+  #### Reseller API
+
+    | Window | Limit | Scope |
+    |--------|-------|-------|
+    | Per minute | 120 requests | Per reseller user ID |
+    | Per hour | 3,000 requests | Per reseller user ID |
+
+    > **Info:**Resellers have higher limits to support managing multiple sub-users.
+  
+
+
+
+
+## Rate Limit Headers
+
+When you receive a rate limit response, the API returns:
+
+| Header | Description |
+|--------|-------------|
+| `X-RateLimit-Limit` | Maximum requests allowed in the current window |
+| `X-RateLimit-Remaining` | Requests remaining in the current window |
+| `Retry-After` | Seconds to wait before retrying (on 429 responses) |
+
+## Handling Rate Limits
+
+When you exceed a rate limit, the API returns HTTP `429 Too Many Requests`:
+
+```json
+{
+  "error": {
+    "code": 429,
+    "message": "Too Many Requests",
+    "description": "Rate limit exceeded. Please retry after 30 seconds."
+  }
+}
+```
+
+### Best Practices
+
+
+
+  #### Implement exponential backoff
+
+    When you receive a 429, wait for the `Retry-After` duration, then retry with increasing delays.
+  
+
+  #### Cache geo data
+
+    Countries, regions, and cities change infrequently. Cache these responses locally and refresh periodically.
+  
+
+  #### Use bulk endpoints
+
+    For blocklist operations, use the bulk endpoint to add up to 500 entries in a single request instead of individual calls.
+  
+
+  #### Monitor your usage
+
+    Check the `X-RateLimit-Remaining` header to track your usage before hitting the limit.
+  
+
+
+
+
+### Example with Retry Logic
+
+
+
+```python Python
+import time
+import requests
+
+def api_request(url, headers, max_retries=3):
+    for attempt in range(max_retries):
+        response = requests.get(url, headers=headers)
+        
+        if response.status_code == 429:
+            retry_after = int(response.headers.get("Retry-After", 30))
+            time.sleep(retry_after)
+            continue
+        
+        return response
+    
+    raise Exception("Max retries exceeded")
+```
+
+```javascript Node.js
+async function apiRequest(url, headers, maxRetries = 3) {
+  for (let attempt = 0; attempt < maxRetries; attempt++) {
+    const response = await fetch(url, { headers });
+    
+    if (response.status === 429) {
+      const retryAfter = parseInt(response.headers.get("Retry-After") || "30");
+      await new Promise(r => setTimeout(r, retryAfter * 1000));
+      continue;
+    }
+    
+    return response;
+  }
+  
+  throw new Error("Max retries exceeded");
+}
+```
+
+

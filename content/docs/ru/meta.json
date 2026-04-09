@@ -1,0 +1,21 @@
+{
+  "title": "Soxway Документация",
+  "root": true,
+  "pages": [
+    "---Начало работы---",
+    "index",
+    "quickstart",
+    "authentication",
+    "---Гайды---",
+    "guides/proxy-setup",
+    "guides/proxy-customization",
+    "guides/geo-targeting",
+    "guides/traffic-management",
+    "guides/ip-whitelist",
+    "guides/domain-blocklist",
+    "---Справочник---",
+    "essentials/error-codes",
+    "essentials/rate-limits",
+    "essentials/response-format"
+  ]
+}

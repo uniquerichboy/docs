@@ -1,0 +1,116 @@
+---
+title: 'Response Format'
+description: 'Standard response format for all API endpoints'
+---
+
+All API responses use a consistent JSON format.
+
+## Success Responses
+
+### Single Resource
+
+```json
+{
+  "data": {
+    "id": "a1b2c3d4-e5f6-7890-abcd-ef1234567890",
+    "name": "US Residential #1",
+    "type": "residential",
+    "country": "US"
+  }
+}
+```
+
+### Resource List
+
+```json
+{
+  "data": [
+    { "id": 1, "name": "Proxy #1" },
+    { "id": 2, "name": "Proxy #2" }
+  ],
+  "total": 2
+}
+```
+
+### Paginated List
+
+```json
+{
+  "data": [
+    { "id": 1, "type": "deposit", "amount": 10.00 }
+  ],
+  "meta": {
+    "current_page": 1,
+    "last_page": 5,
+    "per_page": 20,
+    "total": 100
+  }
+}
+```
+
+### Create / Update
+
+```json
+{
+  "message": "Proxy created successfully.",
+  "data": {
+    "id": "a1b2c3d4-e5f6-7890-abcd-ef1234567890",
+    "name": "US Residential #1"
+  }
+}
+```
+
+### Delete
+
+```json
+{
+  "message": "Proxy deleted successfully."
+}
+```
+
+## Error Responses
+
+```json
+{
+  "error": {
+    "code": 2001,
+    "message": "Validation failed.",
+    "description": "One or more fields did not pass validation.",
+    "field": "country",
+    "errors": [
+      {
+        "field": "country",
+        "message": "The country field is required."
+      }
+    ]
+  }
+}
+```
+
+See [Error Codes](/essentials/error-codes) for the full list.
+
+## HTTP Status Codes
+
+| Status | Meaning |
+|--------|---------|
+| `200` | Success |
+| `201` | Resource created |
+| `400` | Bad request / business logic error |
+| `401` | Authentication required or failed |
+| `402` | Insufficient balance |
+| `403` | Permission denied |
+| `404` | Resource not found |
+| `409` | Conflict (duplicate resource) |
+| `422` | Validation error |
+| `429` | Rate limit exceeded |
+| `500` | Internal server error |
+| `503` | Service temporarily unavailable |
+
+## Content Type
+
+All requests and responses use `application/json`:
+
+```
+Content-Type: application/json
+Accept: application/json
+```

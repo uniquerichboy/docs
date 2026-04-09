@@ -1,0 +1,991 @@
+{
+  "openapi": "3.1.0",
+  "info": {
+    "title": "Soxway Public API",
+    "description": "Public API for managing proxies, account, geo targeting, blocklist and IP whitelist.",
+    "version": "1.0.0",
+    "contact": {
+      "name": "Soxway Support",
+      "url": "https://soxway.io",
+      "email": "support@soxway.io"
+    }
+  },
+  "servers": [
+    {
+      "url": "https://api.soxway.io",
+      "description": "Production"
+    }
+  ],
+  "security": [
+    {
+      "bearerAuth": []
+    }
+  ],
+  "components": {
+    "securitySchemes": {
+      "bearerAuth": {
+        "type": "http",
+        "scheme": "bearer",
+        "description": "Personal access token obtained via POST /v1/auth/token"
+      }
+    },
+    "schemas": {
+      "Error": {
+        "type": "object",
+        "properties": {
+          "error": {
+            "type": "object",
+            "properties": {
+              "code": { "type": "integer", "example": 1001 },
+              "message": { "type": "string", "example": "Authentication token is missing." },
+              "description": { "type": "string", "example": "Include a Bearer token in the Authorization header." },
+              "field": { "type": "string", "nullable": true },
+              "errors": { "type": "array", "items": { "type": "object" }, "nullable": true }
+            }
+          }
+        }
+      },
+      "ProxyConfig": {
+        "type": "object",
+        "properties": {
+          "id": { "type": "string", "format": "uuid", "example": "a1b2c3d4-e5f6-7890-abcd-ef1234567890" },
+          "proxy_id": { "type": "string", "example": "px_abc123" },
+          "name": { "type": "string", "example": "US Residential #1" },
+          "type": { "type": "string", "enum": ["residential", "mobile", "datacenter", "residential_premium", "mobile_premium"] },
+          "country": { "type": "string", "example": "US" },
+          "region": { "type": "string", "nullable": true, "example": "California" },
+          "city": { "type": "string", "nullable": true, "example": "Los Angeles" },
+          "behavior": { "type": "string", "enum": ["keep", "rotate"] },
+          "rotate_type": { "type": "string", "enum": ["each_request", "interval"], "nullable": true },
+          "rotate_interval": { "type": "integer", "nullable": true, "example": 10 },
+          "traffic_limit_gb": { "type": "number", "nullable": true, "example": 5.0 },
+          "traffic_gb": { "type": "number", "example": 1.25 },
+          "host": { "type": "string", "example": "proxy.soxway.io" },
+          "port_http": { "type": "integer", "example": 8080 },
+          "port_socks5": { "type": "integer", "example": 1080 },
+          "proxy_http": { "type": "string", "example": "http://user:pass@proxy.soxway.io:8080" },
+          "proxy_socks5": { "type": "string", "example": "socks5://user:pass@proxy.soxway.io:1080" },
+          "traffic_stats": { "type": "object" },
+          "product": { "type": "object" },
+          "created_at": { "type": "string", "format": "date-time" },
+          "updated_at": { "type": "string", "format": "date-time" }
+        }
+      },
+      "Account": {
+        "type": "object",
+        "properties": {
+          "id": { "type": "integer", "example": 1 },
+          "name": { "type": "string", "example": "John Doe" },
+          "email": { "type": "string", "example": "john@example.com" },
+          "balance": { "type": "number", "example": 25.50 },
+          "currency": { "type": "string", "example": "USD" },
+          "reseller_enabled": { "type": "boolean" },
+          "created_at": { "type": "string", "format": "date-time" }
+        }
+      },
+      "Transaction": {
+        "type": "object",
+        "properties": {
+          "id": { "type": "integer" },
+          "user_id": { "type": "integer" },
+          "type": { "type": "string", "enum": ["deposit", "purchase", "refund"] },
+          "amount": { "type": "number", "example": 10.00 },
+          "balance_before": { "type": "number", "example": 30.00 },
+          "balance_after": { "type": "number", "example": 20.00 },
+          "description": { "type": "string" },
+          "product_id": { "type": "integer", "nullable": true },
+          "metadata": { "type": "object", "nullable": true },
+          "created_at": { "type": "string", "format": "date-time" },
+          "updated_at": { "type": "string", "format": "date-time" }
+        }
+      },
+      "BlockedHost": {
+        "type": "object",
+        "properties": {
+          "id": { "type": "integer" },
+          "pattern": { "type": "string", "example": "ads.example.com" },
+          "comment": { "type": "string", "nullable": true },
+          "created_at": { "type": "string", "format": "date-time" }
+        }
+      },
+      "WhitelistEntry": {
+        "type": "object",
+        "properties": {
+          "id": { "type": "integer" },
+          "ip_or_cidr": { "type": "string", "example": "203.0.113.42/32" },
+          "comment": { "type": "string", "nullable": true },
+          "created_at": { "type": "string", "format": "date-time" }
+        }
+      },
+      "GeoItem": {
+        "type": "object",
+        "properties": {
+          "code": { "type": "string", "example": "US" },
+          "name": { "type": "string", "example": "United States" }
+        }
+      },
+      "Category": {
+        "type": "object",
+        "properties": {
+          "slug": { "type": "string", "example": "residential" },
+          "name": { "type": "string", "example": "Residential" },
+          "tiers": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "min_gb": { "type": "number" },
+                "max_gb": { "type": "number" },
+                "price_per_gb": { "type": "number" }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "paths": {
+    "/v1/auth/token": {
+      "post": {
+        "operationId": "issueToken",
+        "summary": "Issue access token",
+        "description": "Exchange email and password for a personal access token. Rate limited to 5 requests per minute per IP.",
+        "tags": ["Authentication"],
+        "security": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["email", "password", "token_name"],
+                "properties": {
+                  "email": { "type": "string", "format": "email", "example": "user@example.com" },
+                  "password": { "type": "string", "example": "your-password" },
+                  "token_name": { "type": "string", "example": "my-app" }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Token issued successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "data": {
+                      "type": "object",
+                      "properties": {
+                        "token": { "type": "string", "example": "1|abc123def456..." },
+                        "token_type": { "type": "string", "example": "Bearer" },
+                        "user": { "$ref": "#/components/schemas/Account" },
+                        "api_keys": { "type": "object" }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Invalid credentials",
+            "content": { "application/json": { "schema": { "$ref": "#/components/schemas/Error" } } }
+          },
+          "429": { "description": "Rate limit exceeded" }
+        }
+      }
+    },
+    "/v1/auth/tokens": {
+      "get": {
+        "operationId": "listTokens",
+        "summary": "List all tokens",
+        "description": "Get all active personal access tokens for the authenticated user.",
+        "tags": ["Authentication"],
+        "responses": {
+          "200": {
+            "description": "Token list",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "data": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "id": { "type": "integer" },
+                          "name": { "type": "string" },
+                          "token": { "type": "string" },
+                          "last_used_at": { "type": "string", "format": "date-time", "nullable": true },
+                          "created_at": { "type": "string", "format": "date-time" }
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/auth/tokens/{id}": {
+      "delete": {
+        "operationId": "revokeToken",
+        "summary": "Revoke token",
+        "description": "Revoke a specific personal access token by ID.",
+        "tags": ["Authentication"],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": { "type": "integer" }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Token revoked",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "message": { "type": "string", "example": "Token revoked successfully." }
+                  }
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Token not found",
+            "content": { "application/json": { "schema": { "$ref": "#/components/schemas/Error" } } }
+          }
+        }
+      }
+    },
+    "/v1/proxies": {
+      "get": {
+        "operationId": "listProxies",
+        "summary": "List proxies",
+        "description": "Get all proxy configurations for the authenticated user.",
+        "tags": ["Proxies"],
+        "responses": {
+          "200": {
+            "description": "Proxy list",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "data": {
+                      "type": "array",
+                      "items": { "$ref": "#/components/schemas/ProxyConfig" }
+                    },
+                    "total": { "type": "integer" }
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "operationId": "createProxy",
+        "summary": "Create proxy",
+        "description": "Create a new proxy configuration. Deducts from your balance based on traffic pricing.",
+        "tags": ["Proxies"],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["type", "country", "behavior"],
+                "properties": {
+                  "name": { "type": "string", "maxLength": 255, "example": "US Residential #1" },
+                  "type": { "type": "string", "enum": ["residential", "mobile", "datacenter", "residential_premium", "mobile_premium"] },
+                  "country": { "type": "string", "minLength": 2, "maxLength": 2, "example": "US" },
+                  "region": { "type": "string", "nullable": true, "example": "California" },
+                  "city": { "type": "string", "nullable": true, "example": "Los Angeles" },
+                  "behavior": { "type": "string", "enum": ["keep", "rotate"] },
+                  "rotate_type": { "type": "string", "enum": ["each_request", "interval"], "nullable": true },
+                  "rotate_interval": { "type": "integer", "minimum": 0, "maximum": 1440, "nullable": true },
+                  "traffic_limit": { "type": "number", "minimum": 0, "nullable": true }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Proxy created",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "message": { "type": "string" },
+                    "data": { "$ref": "#/components/schemas/ProxyConfig" }
+                  }
+                }
+              }
+            }
+          },
+          "402": {
+            "description": "Insufficient balance",
+            "content": { "application/json": { "schema": { "$ref": "#/components/schemas/Error" } } }
+          },
+          "422": {
+            "description": "Validation error",
+            "content": { "application/json": { "schema": { "$ref": "#/components/schemas/Error" } } }
+          },
+          "503": {
+            "description": "Gateway unavailable",
+            "content": { "application/json": { "schema": { "$ref": "#/components/schemas/Error" } } }
+          }
+        }
+      }
+    },
+    "/v1/proxies/{id}": {
+      "get": {
+        "operationId": "getProxy",
+        "summary": "Get proxy",
+        "description": "Get a single proxy configuration by UUID.",
+        "tags": ["Proxies"],
+        "parameters": [
+          { "name": "id", "in": "path", "required": true, "schema": { "type": "string", "format": "uuid" } }
+        ],
+        "responses": {
+          "200": {
+            "description": "Proxy details",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": { "data": { "$ref": "#/components/schemas/ProxyConfig" } }
+                }
+              }
+            }
+          },
+          "404": { "description": "Proxy not found", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/Error" } } } }
+        }
+      },
+      "put": {
+        "operationId": "updateProxy",
+        "summary": "Update proxy",
+        "description": "Update an existing proxy configuration.",
+        "tags": ["Proxies"],
+        "parameters": [
+          { "name": "id", "in": "path", "required": true, "schema": { "type": "string", "format": "uuid" } }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "name": { "type": "string", "maxLength": 255 },
+                  "country": { "type": "string", "minLength": 2, "maxLength": 2 },
+                  "region": { "type": "string", "nullable": true },
+                  "city": { "type": "string", "nullable": true },
+                  "behavior": { "type": "string", "enum": ["keep", "rotate"] },
+                  "lifetime_minutes": { "type": "integer", "nullable": true }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Proxy updated",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "message": { "type": "string" },
+                    "data": { "$ref": "#/components/schemas/ProxyConfig" }
+                  }
+                }
+              }
+            }
+          },
+          "404": { "description": "Not found", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/Error" } } } }
+        }
+      },
+      "delete": {
+        "operationId": "deleteProxy",
+        "summary": "Delete proxy",
+        "description": "Permanently delete a proxy configuration.",
+        "tags": ["Proxies"],
+        "parameters": [
+          { "name": "id", "in": "path", "required": true, "schema": { "type": "string", "format": "uuid" } }
+        ],
+        "responses": {
+          "200": {
+            "description": "Proxy deleted",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": { "message": { "type": "string", "example": "Proxy deleted successfully." } }
+                }
+              }
+            }
+          },
+          "404": { "description": "Not found", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/Error" } } } }
+        }
+      }
+    },
+    "/v1/proxies/traffic": {
+      "get": {
+        "operationId": "getProxiesTraffic",
+        "summary": "Get traffic stats",
+        "description": "Get traffic usage statistics for all proxies.",
+        "tags": ["Proxies"],
+        "parameters": [
+          { "name": "force", "in": "query", "schema": { "type": "integer", "enum": [0, 1] }, "description": "Bypass cache (1 = force refresh)" }
+        ],
+        "responses": {
+          "200": {
+            "description": "Traffic statistics",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "data": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "proxy_id": { "type": "string" },
+                          "config_id": { "type": "string", "format": "uuid" },
+                          "config_name": { "type": "string" },
+                          "today_mb": { "type": "number" },
+                          "yesterday_mb": { "type": "number" },
+                          "all_time_mb": { "type": "number" },
+                          "price_per_gb": { "type": "number" }
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/proxies/{id}/analytics": {
+      "get": {
+        "operationId": "getProxyAnalytics",
+        "summary": "Get proxy analytics",
+        "description": "Get detailed analytics for a specific proxy.",
+        "tags": ["Proxies"],
+        "parameters": [
+          { "name": "id", "in": "path", "required": true, "schema": { "type": "string", "format": "uuid" } },
+          { "name": "period", "in": "query", "schema": { "type": "string", "enum": ["today", "yesterday", "all"], "default": "today" } }
+        ],
+        "responses": {
+          "200": {
+            "description": "Analytics data",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "data": {
+                      "type": "object",
+                      "properties": {
+                        "id": { "type": "string" },
+                        "period": { "type": "string" },
+                        "traffic": {
+                          "type": "object",
+                          "properties": {
+                            "today_mb": { "type": "number" },
+                            "yesterday_mb": { "type": "number" },
+                            "all_time_mb": { "type": "number" }
+                          }
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "404": { "description": "Proxy not found" }
+        }
+      }
+    },
+    "/v1/account": {
+      "get": {
+        "operationId": "getAccount",
+        "summary": "Get account info",
+        "description": "Get the authenticated user's account information.",
+        "tags": ["Account"],
+        "responses": {
+          "200": {
+            "description": "Account info",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": { "data": { "$ref": "#/components/schemas/Account" } }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/account/balance": {
+      "get": {
+        "operationId": "getBalance",
+        "summary": "Get balance",
+        "description": "Get the current account balance.",
+        "tags": ["Account"],
+        "responses": {
+          "200": {
+            "description": "Balance",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "data": {
+                      "type": "object",
+                      "properties": {
+                        "balance": { "type": "number", "example": 25.50 },
+                        "currency": { "type": "string", "example": "USD" }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/account/transactions": {
+      "get": {
+        "operationId": "getTransactions",
+        "summary": "List transactions",
+        "description": "Get paginated transaction history.",
+        "tags": ["Account"],
+        "parameters": [
+          { "name": "per_page", "in": "query", "schema": { "type": "integer", "default": 20 } },
+          { "name": "page", "in": "query", "schema": { "type": "integer", "default": 1 } }
+        ],
+        "responses": {
+          "200": {
+            "description": "Transaction list",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "data": { "type": "array", "items": { "$ref": "#/components/schemas/Transaction" } },
+                    "meta": {
+                      "type": "object",
+                      "properties": {
+                        "current_page": { "type": "integer" },
+                        "last_page": { "type": "integer" },
+                        "per_page": { "type": "integer" },
+                        "total": { "type": "integer" }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/account/categories": {
+      "get": {
+        "operationId": "getCategories",
+        "summary": "List categories",
+        "description": "Get available proxy categories with tiered pricing.",
+        "tags": ["Account"],
+        "responses": {
+          "200": {
+            "description": "Category list",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "data": { "type": "array", "items": { "$ref": "#/components/schemas/Category" } }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/account/traffic": {
+      "get": {
+        "operationId": "getAccountTraffic",
+        "summary": "Get account traffic",
+        "description": "Get account-wide traffic usage statistics.",
+        "tags": ["Account"],
+        "parameters": [
+          { "name": "period", "in": "query", "schema": { "type": "string", "default": "24h" } }
+        ],
+        "responses": {
+          "200": {
+            "description": "Traffic data",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "data": {
+                      "type": "object",
+                      "properties": {
+                        "period": { "type": "string" },
+                        "total_bytes": { "type": "integer" },
+                        "graph": { "type": "object" }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/account/plan": {
+      "get": {
+        "operationId": "getAccountPlan",
+        "summary": "Get plan info",
+        "description": "Get plan details and usage limits.",
+        "tags": ["Account"],
+        "parameters": [
+          { "name": "type", "in": "query", "schema": { "type": "string", "enum": ["residential", "mobile", "datacenter", "residential_premium", "mobile_premium"] } }
+        ],
+        "responses": {
+          "200": {
+            "description": "Plan info",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "data": {
+                      "type": "object",
+                      "properties": {
+                        "limit_bytes": { "type": "integer" },
+                        "used_bytes": { "type": "integer" },
+                        "remaining_bytes": { "type": "integer" },
+                        "plan_name": { "type": "string" },
+                        "forecast": { "type": "object" }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/geo/countries": {
+      "get": {
+        "operationId": "getCountries",
+        "summary": "List countries",
+        "description": "Get available countries for proxy targeting. No authentication required.",
+        "tags": ["Geo"],
+        "security": [],
+        "parameters": [
+          { "name": "type", "in": "query", "schema": { "type": "string", "enum": ["residential", "mobile", "datacenter"], "default": "residential" } }
+        ],
+        "responses": {
+          "200": {
+            "description": "Country list",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "data": { "type": "array", "items": { "$ref": "#/components/schemas/GeoItem" } },
+                    "total": { "type": "integer" }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/geo/regions": {
+      "get": {
+        "operationId": "getRegions",
+        "summary": "List regions",
+        "description": "Get available regions for a country. No authentication required.",
+        "tags": ["Geo"],
+        "security": [],
+        "parameters": [
+          { "name": "country", "in": "query", "required": true, "schema": { "type": "string", "example": "US" } },
+          { "name": "type", "in": "query", "schema": { "type": "string", "enum": ["residential", "mobile", "datacenter"], "default": "residential" } }
+        ],
+        "responses": {
+          "200": {
+            "description": "Region list",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "data": { "type": "array", "items": { "$ref": "#/components/schemas/GeoItem" } },
+                    "total": { "type": "integer" }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/geo/cities": {
+      "get": {
+        "operationId": "getCities",
+        "summary": "List cities",
+        "description": "Get available cities for a country. No authentication required.",
+        "tags": ["Geo"],
+        "security": [],
+        "parameters": [
+          { "name": "country", "in": "query", "required": true, "schema": { "type": "string", "example": "US" } },
+          { "name": "type", "in": "query", "schema": { "type": "string", "enum": ["residential", "mobile", "datacenter"], "default": "residential" } }
+        ],
+        "responses": {
+          "200": {
+            "description": "City list",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "data": { "type": "array", "items": { "$ref": "#/components/schemas/GeoItem" } },
+                    "total": { "type": "integer" }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/account/blocklist": {
+      "get": {
+        "operationId": "listBlocklist",
+        "summary": "List blocklist",
+        "description": "Get all blocked domain patterns.",
+        "tags": ["Blocklist"],
+        "responses": {
+          "200": {
+            "description": "Blocklist",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "data": { "type": "array", "items": { "$ref": "#/components/schemas/BlockedHost" } },
+                    "total": { "type": "integer" }
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "operationId": "addToBlocklist",
+        "summary": "Add to blocklist",
+        "description": "Block a domain pattern from being accessed through your proxies.",
+        "tags": ["Blocklist"],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["pattern"],
+                "properties": {
+                  "pattern": { "type": "string", "maxLength": 255, "example": "ads.example.com" },
+                  "comment": { "type": "string", "maxLength": 500, "nullable": true }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Added",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": { "data": { "$ref": "#/components/schemas/BlockedHost" } }
+                }
+              }
+            }
+          },
+          "409": { "description": "Pattern already exists" },
+          "422": { "description": "Validation error" }
+        }
+      }
+    },
+    "/v1/account/blocklist/bulk": {
+      "post": {
+        "operationId": "bulkAddToBlocklist",
+        "summary": "Bulk add to blocklist",
+        "description": "Add up to 500 domain patterns at once.",
+        "tags": ["Blocklist"],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["entries"],
+                "properties": {
+                  "entries": { "type": "array", "items": { "type": "string" }, "maxItems": 500, "example": ["spam.com", "malware.net"] }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Bulk result",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "inserted": { "type": "integer" },
+                    "skipped": { "type": "integer" },
+                    "total_requested": { "type": "integer" }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/account/blocklist/{id}": {
+      "delete": {
+        "operationId": "deleteFromBlocklist",
+        "summary": "Delete from blocklist",
+        "description": "Remove a blocked domain pattern.",
+        "tags": ["Blocklist"],
+        "parameters": [
+          { "name": "id", "in": "path", "required": true, "schema": { "type": "integer" } }
+        ],
+        "responses": {
+          "200": { "description": "Deleted", "content": { "application/json": { "schema": { "type": "object", "properties": { "message": { "type": "string" } } } } } },
+          "404": { "description": "Not found" }
+        }
+      }
+    },
+    "/v1/account/blocklist/export": {
+      "get": {
+        "operationId": "exportBlocklist",
+        "summary": "Export blocklist",
+        "description": "Export the entire blocklist as a CSV file.",
+        "tags": ["Blocklist"],
+        "responses": {
+          "200": { "description": "CSV file download", "content": { "text/csv": { "schema": { "type": "string" } } } }
+        }
+      }
+    },
+    "/v1/account/whitelist": {
+      "get": {
+        "operationId": "listWhitelist",
+        "summary": "List whitelist",
+        "description": "Get all whitelisted IP addresses and CIDR ranges.",
+        "tags": ["IP Whitelist"],
+        "responses": {
+          "200": {
+            "description": "Whitelist",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "data": { "type": "array", "items": { "$ref": "#/components/schemas/WhitelistEntry" } },
+                    "total": { "type": "integer" }
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "operationId": "addToWhitelist",
+        "summary": "Add to whitelist",
+        "description": "Whitelist an IP address or CIDR range for proxy access.",
+        "tags": ["IP Whitelist"],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["ip_or_cidr"],
+                "properties": {
+                  "ip_or_cidr": { "type": "string", "maxLength": 255, "example": "203.0.113.42/32" },
+                  "comment": { "type": "string", "maxLength": 500, "nullable": true }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Added",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": { "data": { "$ref": "#/components/schemas/WhitelistEntry" } }
+                }
+              }
+            }
+          },
+          "422": { "description": "Invalid IP format" }
+        }
+      }
+    },
+    "/v1/account/whitelist/{id}": {
+      "delete": {
+        "operationId": "deleteFromWhitelist",
+        "summary": "Delete from whitelist",
+        "description": "Remove a whitelisted IP address.",
+        "tags": ["IP Whitelist"],
+        "parameters": [
+          { "name": "id", "in": "path", "required": true, "schema": { "type": "integer" } }
+        ],
+        "responses": {
+          "200": { "description": "Deleted", "content": { "application/json": { "schema": { "type": "object", "properties": { "message": { "type": "string" } } } } } },
+          "404": { "description": "Not found" }
+        }
+      }
+    }
+  }
+}

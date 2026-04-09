@@ -1,0 +1,131 @@
+---
+title: 'Proxy Setup'
+description: 'How to create and configure your first proxy'
+---
+
+## Creating a Proxy
+
+Every proxy in Soxway is a **configuration** that defines the type, location, and behavior of your proxy connection.
+
+### Proxy Types
+
+| Type | Description | Use Case |
+|------|-------------|----------|
+| `residential` | Real residential IPs from ISPs | Web scraping, market research |
+| `mobile` | Mobile carrier IPs (3G/4G/5G) | Mobile app testing, social media |
+| `datacenter` | Fast datacenter IPs | High-speed tasks, bulk operations |
+| `residential_premium` | Premium residential pool | Higher success rates, less detection |
+| `mobile_premium` | Premium mobile pool | Best mobile IPs available |
+
+### Create via API
+
+```bash
+curl -X POST https://api.soxway.io/v1/proxies \
+  -H "Authorization: Bearer YOUR_TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "name": "My US Proxy",
+    "type": "residential",
+    "country": "US",
+    "region": "California",
+    "city": "Los Angeles",
+    "behavior": "rotate",
+    "rotate_type": "each_request"
+  }'
+```
+
+### Create via Dashboard
+
+1. Go to [my.soxway.io/proxies/create](https://my.soxway.io/proxies/create)
+2. Select the proxy type
+3. Choose the target country, region, and city
+4. Configure rotation behavior
+5. Click **Create Proxy**
+
+## Using Your Proxy
+
+After creation, you'll receive connection details:
+
+| Field | Example |
+|-------|---------|
+| `host` | `proxy.soxway.io` |
+| `port_http` | `8080` |
+| `port_socks5` | `1080` |
+| `proxy_http` | `http://user:pass@proxy.soxway.io:8080` |
+| `proxy_socks5` | `socks5://user:pass@proxy.soxway.io:1080` |
+
+### Using with Popular Tools
+
+
+
+  #### cURL
+
+    ```bash
+    # HTTP
+    curl -x http://user:pass@proxy.soxway.io:8080 https://example.com
+
+    # SOCKS5
+    curl -x socks5://user:pass@proxy.soxway.io:1080 https://example.com
+    ```
+  
+
+  #### Python (requests)
+
+    ```python
+    import requests
+
+    proxies = {
+        "http": "http://user:pass@proxy.soxway.io:8080",
+        "https": "http://user:pass@proxy.soxway.io:8080"
+    }
+
+    response = requests.get("https://example.com", proxies=proxies)
+    ```
+  
+
+  #### Node.js
+
+    ```javascript
+    import { HttpsProxyAgent } from 'https-proxy-agent';
+
+    const agent = new HttpsProxyAgent('http://user:pass@proxy.soxway.io:8080');
+    const response = await fetch('https://example.com', { agent });
+    ```
+  
+
+  #### Browser (Puppeteer)
+
+    ```javascript
+    const browser = await puppeteer.launch({
+      args: ['--proxy-server=http://proxy.soxway.io:8080']
+    });
+    ```
+  
+
+
+
+
+## Managing Proxies
+
+### List All Proxies
+
+```bash
+curl https://api.soxway.io/v1/proxies \
+  -H "Authorization: Bearer YOUR_TOKEN"
+```
+
+### Update a Proxy
+
+```bash
+curl -X PUT https://api.soxway.io/v1/proxies/\{id\} \
+  -H "Authorization: Bearer YOUR_TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{"country": "DE", "behavior": "keep"}'
+```
+
+### Delete a Proxy
+
+```bash
+curl -X DELETE https://api.soxway.io/v1/proxies/\{id\} \
+  -H "Authorization: Bearer YOUR_TOKEN"
+```

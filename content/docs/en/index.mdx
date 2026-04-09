@@ -1,0 +1,88 @@
+---
+title: 'Welcome to Soxway'
+description: 'High-performance residential, mobile, and datacenter proxies with a powerful API'
+---
+
+## What is Soxway?
+
+Soxway is a premium proxy service that provides residential, mobile, and datacenter proxies with precise geo-targeting down to the city level. Manage everything through our dashboard or integrate directly via our REST API.
+
+
+
+  - **[Quickstart](/quickstart):
+    Get up and running in under 5 minutes
+  
+  - **[API Reference](/api-reference/auth/issue-token):
+    Full API documentation with interactive playground
+  
+  - **[Reseller API](/api-reference/reseller/overview):
+    Build your own proxy business with our reseller program
+  
+  - **[Guides](/guides/proxy-setup):
+    Step-by-step guides for common tasks
+  
+
+
+
+## Key Features
+
+
+
+  - **Geo Targeting**:
+    Target by country, region, or city across 195+ countries
+  
+  - **Rotation Control**:
+    Keep sticky sessions or rotate on each request or interval
+  
+  - **HTTP & SOCKS5**:
+    Both protocols supported on every proxy
+  
+  - **Pay As You Go**:
+    Only pay for the traffic you use, no subscriptions
+  
+  - **IP Whitelist**:
+    Restrict access to your trusted IPs
+  
+  - **Domain Blocklist**:
+    Block unwanted domains at the proxy level
+  
+
+
+
+## Base URL
+
+All API requests are made to:
+
+```
+https://api.soxway.io
+```
+
+## Authentication
+
+The API uses Bearer token authentication. Get your token by calling the [Issue Token](/api-reference/auth/issue-token) endpoint with your email and password.
+
+```bash
+curl -X POST https://api.soxway.io/v1/auth/token \
+  -H "Content-Type: application/json" \
+  -d '{"email": "you@example.com", "password": "your-password", "token_name": "my-app"}'
+```
+
+Then use the token in all subsequent requests:
+
+```bash
+curl https://api.soxway.io/v1/proxies \
+  -H "Authorization: Bearer YOUR_TOKEN"
+```
+
+## Need Help?
+
+
+
+  - **[Dashboard](https://my.soxway.io):
+    Manage your account, proxies, and billing
+  
+  - **[Telegram](https://t.me/soxway):
+    Get support from our team
+  
+
+

@@ -1,0 +1,602 @@
+{
+  "openapi": "3.1.0",
+  "info": {
+    "title": "Soxway Reseller API",
+    "description": "API for resellers to manage sub-users, allocate traffic, and control blocklist/whitelist settings.",
+    "version": "1.0.0",
+    "contact": {
+      "name": "Soxway Support",
+      "url": "https://soxway.io",
+      "email": "support@soxway.io"
+    }
+  },
+  "servers": [
+    {
+      "url": "https://api.soxway.io",
+      "description": "Production"
+    }
+  ],
+  "security": [
+    {
+      "bearerAuth": []
+    }
+  ],
+  "components": {
+    "securitySchemes": {
+      "bearerAuth": {
+        "type": "http",
+        "scheme": "bearer",
+        "description": "Access token obtained via POST /reseller/access-token using your Reseller Key"
+      },
+      "resellerKey": {
+        "type": "apiKey",
+        "in": "header",
+        "name": "X-Reseller-Key",
+        "description": "Reseller key for obtaining access token"
+      }
+    },
+    "schemas": {
+      "Error": {
+        "type": "object",
+        "properties": {
+          "error": {
+            "type": "object",
+            "properties": {
+              "code": { "type": "integer" },
+              "message": { "type": "string" },
+              "description": { "type": "string" },
+              "field": { "type": "string", "nullable": true },
+              "errors": { "type": "array", "items": { "type": "object" }, "nullable": true }
+            }
+          }
+        }
+      },
+      "SubUser": {
+        "type": "object",
+        "properties": {
+          "id": { "type": "integer" },
+          "username": { "type": "string", "example": "client_001" },
+          "service_type": { "type": "string", "example": "residential" },
+          "traffic_balance_bytes": { "type": "integer" },
+          "usage_bandwidth_bytes": { "type": "integer" },
+          "note": { "type": "string", "nullable": true },
+          "proxy_config": { "type": "array", "items": { "type": "object" } },
+          "created_at": { "type": "string", "format": "date-time" },
+          "updated_at": { "type": "string", "format": "date-time" }
+        }
+      },
+      "BlockedHost": {
+        "type": "object",
+        "properties": {
+          "id": { "type": "integer" },
+          "pattern": { "type": "string" },
+          "comment": { "type": "string", "nullable": true },
+          "created_at": { "type": "string", "format": "date-time" }
+        }
+      },
+      "WhitelistEntry": {
+        "type": "object",
+        "properties": {
+          "id": { "type": "integer" },
+          "ip_or_cidr": { "type": "string" },
+          "comment": { "type": "string", "nullable": true },
+          "created_at": { "type": "string", "format": "date-time" }
+        }
+      }
+    }
+  },
+  "paths": {
+    "/reseller/access-token": {
+      "post": {
+        "operationId": "getAccessToken",
+        "summary": "Get access token",
+        "description": "Exchange your Reseller Key for a Bearer access token. The token does not expire unless manually revoked.",
+        "tags": ["Authentication"],
+        "security": [{ "resellerKey": [] }],
+        "parameters": [
+          {
+            "name": "X-Reseller-Key",
+            "in": "header",
+            "required": true,
+            "schema": { "type": "string", "format": "uuid" },
+            "description": "Your reseller key"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Access token issued",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "data": {
+                      "type": "object",
+                      "properties": {
+                        "access_token": { "type": "string", "example": "1|abc123..." },
+                        "expires_at": { "type": "string", "nullable": true, "example": null }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": { "description": "Invalid reseller key", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/Error" } } } }
+        }
+      }
+    },
+    "/reseller/balance": {
+      "get": {
+        "operationId": "getResellerBalance",
+        "summary": "Get traffic balance",
+        "description": "Get the reseller's current traffic balance in GB.",
+        "tags": ["Account"],
+        "responses": {
+          "200": {
+            "description": "Balance",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "data": {
+                      "type": "object",
+                      "properties": {
+                        "balance": { "type": "number", "example": 100.5 },
+                        "unit": { "type": "string", "example": "GB" }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/reseller/topup-traffic": {
+      "post": {
+        "operationId": "topupTraffic",
+        "summary": "Top up traffic balance",
+        "description": "Purchase traffic balance using your account USD balance. Traffic is allocated per proxy type.",
+        "tags": ["Account"],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["amount_gb", "proxy_type"],
+                "properties": {
+                  "amount_gb": { "type": "number", "minimum": 0.01, "example": 10 },
+                  "proxy_type": { "type": "string", "enum": ["residential", "mobile", "residential_premium", "mobile_premium"], "example": "residential" }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Traffic purchased",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "message": { "type": "string" },
+                    "data": {
+                      "type": "object",
+                      "properties": {
+                        "proxy_type": { "type": "string" },
+                        "traffic_balance_gb": { "type": "number" },
+                        "amount_added_gb": { "type": "number" },
+                        "cost": { "type": "number" }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "402": { "description": "Insufficient balance" }
+        }
+      }
+    },
+    "/reseller/analytics": {
+      "get": {
+        "operationId": "getResellerAnalytics",
+        "summary": "Get analytics",
+        "description": "Get reseller analytics including sub-user statistics and traffic usage.",
+        "tags": ["Account"],
+        "responses": {
+          "200": {
+            "description": "Analytics data",
+            "content": { "application/json": { "schema": { "type": "object" } } }
+          }
+        }
+      }
+    },
+    "/reseller/sub-users": {
+      "get": {
+        "operationId": "listSubUsers",
+        "summary": "List sub-users",
+        "description": "Get all sub-users belonging to this reseller.",
+        "tags": ["Sub-Users"],
+        "responses": {
+          "200": {
+            "description": "Sub-user list",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "data": { "type": "array", "items": { "$ref": "#/components/schemas/SubUser" } },
+                    "total": { "type": "integer" }
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "operationId": "createSubUser",
+        "summary": "Create sub-user",
+        "description": "Create a new sub-user and allocate initial traffic. Returns credentials for the sub-user to connect to the proxy.",
+        "tags": ["Sub-Users"],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["username", "traffic_allocation_gb"],
+                "properties": {
+                  "username": { "type": "string", "maxLength": 255, "example": "client_001" },
+                  "traffic_allocation_gb": { "type": "number", "minimum": 0.01, "example": 5.0 }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Sub-user created",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "message": { "type": "string" },
+                    "data": { "$ref": "#/components/schemas/SubUser" }
+                  }
+                }
+              }
+            }
+          },
+          "402": { "description": "Insufficient traffic balance" },
+          "422": { "description": "Validation error" }
+        }
+      }
+    },
+    "/reseller/sub-users/{subId}": {
+      "get": {
+        "operationId": "getSubUser",
+        "summary": "Get sub-user",
+        "description": "Get detailed information about a specific sub-user.",
+        "tags": ["Sub-Users"],
+        "parameters": [
+          { "name": "subId", "in": "path", "required": true, "schema": { "type": "integer" } }
+        ],
+        "responses": {
+          "200": {
+            "description": "Sub-user details",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": { "data": { "$ref": "#/components/schemas/SubUser" } }
+                }
+              }
+            }
+          },
+          "404": { "description": "Sub-user not found" }
+        }
+      },
+      "delete": {
+        "operationId": "deleteSubUser",
+        "summary": "Delete sub-user",
+        "description": "Permanently delete a sub-user. Unused traffic is returned to the reseller's balance.",
+        "tags": ["Sub-Users"],
+        "parameters": [
+          { "name": "subId", "in": "path", "required": true, "schema": { "type": "integer" } }
+        ],
+        "responses": {
+          "200": {
+            "description": "Deleted",
+            "content": { "application/json": { "schema": { "type": "object", "properties": { "message": { "type": "string" } } } } }
+          },
+          "404": { "description": "Not found" }
+        }
+      }
+    },
+    "/reseller/sub-users/{subId}/traffic/add": {
+      "post": {
+        "operationId": "addTraffic",
+        "summary": "Add traffic to sub-user",
+        "description": "Allocate additional traffic from your reseller balance to a sub-user.",
+        "tags": ["Sub-Users"],
+        "parameters": [
+          { "name": "subId", "in": "path", "required": true, "schema": { "type": "integer" } }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["traffic_gb"],
+                "properties": {
+                  "traffic_gb": { "type": "number", "minimum": 0.01, "example": 2.5 }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Traffic added",
+            "content": { "application/json": { "schema": { "type": "object", "properties": { "data": { "$ref": "#/components/schemas/SubUser" } } } } }
+          },
+          "402": { "description": "Insufficient traffic balance" },
+          "404": { "description": "Sub-user not found" }
+        }
+      }
+    },
+    "/reseller/sub-users/{subId}/traffic/drop": {
+      "post": {
+        "operationId": "dropTraffic",
+        "summary": "Remove traffic from sub-user",
+        "description": "Remove allocated traffic from a sub-user. Traffic is returned to your reseller balance.",
+        "tags": ["Sub-Users"],
+        "parameters": [
+          { "name": "subId", "in": "path", "required": true, "schema": { "type": "integer" } }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["traffic_gb"],
+                "properties": {
+                  "traffic_gb": { "type": "number", "minimum": 0.01, "example": 1.0 }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Traffic removed",
+            "content": { "application/json": { "schema": { "type": "object", "properties": { "data": { "$ref": "#/components/schemas/SubUser" } } } } }
+          },
+          "404": { "description": "Sub-user not found" }
+        }
+      }
+    },
+    "/reseller/sub-users/{subId}/traffic": {
+      "get": {
+        "operationId": "getSubUserTraffic",
+        "summary": "Get sub-user traffic",
+        "description": "Get traffic usage statistics for a specific sub-user.",
+        "tags": ["Sub-Users"],
+        "parameters": [
+          { "name": "subId", "in": "path", "required": true, "schema": { "type": "integer" } }
+        ],
+        "responses": {
+          "200": {
+            "description": "Traffic data",
+            "content": { "application/json": { "schema": { "type": "object" } } }
+          },
+          "404": { "description": "Sub-user not found" }
+        }
+      }
+    },
+    "/reseller/sub-users/{subId}/note": {
+      "patch": {
+        "operationId": "updateSubUserNote",
+        "summary": "Update sub-user note",
+        "description": "Update the internal note for a sub-user.",
+        "tags": ["Sub-Users"],
+        "parameters": [
+          { "name": "subId", "in": "path", "required": true, "schema": { "type": "integer" } }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["note"],
+                "properties": {
+                  "note": { "type": "string", "example": "Premium client - priority support" }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": { "description": "Note updated", "content": { "application/json": { "schema": { "type": "object", "properties": { "data": { "$ref": "#/components/schemas/SubUser" } } } } } },
+          "404": { "description": "Not found" }
+        }
+      }
+    },
+    "/reseller/sub-users/{subId}/history": {
+      "get": {
+        "operationId": "getSubUserHistory",
+        "summary": "Get sub-user history",
+        "description": "Get the traffic allocation and usage history for a sub-user.",
+        "tags": ["Sub-Users"],
+        "parameters": [
+          { "name": "subId", "in": "path", "required": true, "schema": { "type": "integer" } }
+        ],
+        "responses": {
+          "200": { "description": "History data", "content": { "application/json": { "schema": { "type": "object" } } } },
+          "404": { "description": "Not found" }
+        }
+      }
+    },
+    "/reseller/sub-users/{subId}/blocklist": {
+      "get": {
+        "operationId": "listSubUserBlocklist",
+        "summary": "List sub-user blocklist",
+        "description": "Get blocked domain patterns for a sub-user.",
+        "tags": ["Sub-User Blocklist"],
+        "parameters": [
+          { "name": "subId", "in": "path", "required": true, "schema": { "type": "integer" } }
+        ],
+        "responses": {
+          "200": {
+            "description": "Blocklist",
+            "content": { "application/json": { "schema": { "type": "object", "properties": { "data": { "type": "array", "items": { "$ref": "#/components/schemas/BlockedHost" } }, "total": { "type": "integer" } } } } }
+          }
+        }
+      },
+      "post": {
+        "operationId": "addToSubUserBlocklist",
+        "summary": "Add to sub-user blocklist",
+        "description": "Block a domain pattern for a specific sub-user.",
+        "tags": ["Sub-User Blocklist"],
+        "parameters": [
+          { "name": "subId", "in": "path", "required": true, "schema": { "type": "integer" } }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["pattern"],
+                "properties": {
+                  "pattern": { "type": "string", "example": "ads.example.com" },
+                  "comment": { "type": "string", "nullable": true }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": { "description": "Added", "content": { "application/json": { "schema": { "type": "object", "properties": { "data": { "$ref": "#/components/schemas/BlockedHost" } } } } } },
+          "409": { "description": "Already exists" }
+        }
+      }
+    },
+    "/reseller/sub-users/{subId}/blocklist/bulk": {
+      "post": {
+        "operationId": "bulkAddSubUserBlocklist",
+        "summary": "Bulk add to sub-user blocklist",
+        "description": "Add up to 500 domain patterns to a sub-user's blocklist at once.",
+        "tags": ["Sub-User Blocklist"],
+        "parameters": [
+          { "name": "subId", "in": "path", "required": true, "schema": { "type": "integer" } }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["entries"],
+                "properties": {
+                  "entries": { "type": "array", "items": { "type": "string" }, "maxItems": 500 }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": { "description": "Bulk result", "content": { "application/json": { "schema": { "type": "object", "properties": { "inserted": { "type": "integer" }, "skipped": { "type": "integer" }, "total_requested": { "type": "integer" } } } } } }
+        }
+      }
+    },
+    "/reseller/sub-users/{subId}/blocklist/{id}": {
+      "delete": {
+        "operationId": "deleteFromSubUserBlocklist",
+        "summary": "Delete from sub-user blocklist",
+        "description": "Remove a blocked domain pattern from a sub-user.",
+        "tags": ["Sub-User Blocklist"],
+        "parameters": [
+          { "name": "subId", "in": "path", "required": true, "schema": { "type": "integer" } },
+          { "name": "id", "in": "path", "required": true, "schema": { "type": "integer" } }
+        ],
+        "responses": {
+          "200": { "description": "Deleted" },
+          "404": { "description": "Not found" }
+        }
+      }
+    },
+    "/reseller/sub-users/{subId}/whitelist": {
+      "get": {
+        "operationId": "listSubUserWhitelist",
+        "summary": "List sub-user whitelist",
+        "description": "Get whitelisted IPs for a sub-user.",
+        "tags": ["Sub-User Whitelist"],
+        "parameters": [
+          { "name": "subId", "in": "path", "required": true, "schema": { "type": "integer" } }
+        ],
+        "responses": {
+          "200": {
+            "description": "Whitelist",
+            "content": { "application/json": { "schema": { "type": "object", "properties": { "data": { "type": "array", "items": { "$ref": "#/components/schemas/WhitelistEntry" } }, "total": { "type": "integer" } } } } }
+          }
+        }
+      },
+      "post": {
+        "operationId": "addToSubUserWhitelist",
+        "summary": "Add to sub-user whitelist",
+        "description": "Whitelist an IP address for a specific sub-user.",
+        "tags": ["Sub-User Whitelist"],
+        "parameters": [
+          { "name": "subId", "in": "path", "required": true, "schema": { "type": "integer" } }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["ip_or_cidr"],
+                "properties": {
+                  "ip_or_cidr": { "type": "string", "example": "203.0.113.42/32" },
+                  "comment": { "type": "string", "nullable": true }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": { "description": "Added", "content": { "application/json": { "schema": { "type": "object", "properties": { "data": { "$ref": "#/components/schemas/WhitelistEntry" } } } } } },
+          "422": { "description": "Invalid IP format" }
+        }
+      }
+    },
+    "/reseller/sub-users/{subId}/whitelist/{id}": {
+      "delete": {
+        "operationId": "deleteFromSubUserWhitelist",
+        "summary": "Delete from sub-user whitelist",
+        "description": "Remove a whitelisted IP from a sub-user.",
+        "tags": ["Sub-User Whitelist"],
+        "parameters": [
+          { "name": "subId", "in": "path", "required": true, "schema": { "type": "integer" } },
+          { "name": "id", "in": "path", "required": true, "schema": { "type": "integer" } }
+        ],
+        "responses": {
+          "200": { "description": "Deleted" },
+          "404": { "description": "Not found" }
+        }
+      }
+    }
+  }
+}

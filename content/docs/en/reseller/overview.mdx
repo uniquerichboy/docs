@@ -1,0 +1,75 @@
+---
+title: 'Reseller Overview'
+description: 'Build your own proxy business with the Soxway Reseller API'
+---
+
+The Reseller API allows you to create and manage sub-users, allocate traffic, and control access settings programmatically. Build your own proxy service on top of Soxway infrastructure.
+
+## How It Works
+
+
+
+  #### Enable Reseller Access
+
+    Contact support or enable reseller mode from your dashboard at [my.soxway.io/reseller](https://my.soxway.io/reseller).
+  
+
+  #### Generate a Reseller Key
+
+    Generate your reseller key from the dashboard or via the API.
+  
+
+  #### Top Up Traffic Balance
+
+    Purchase traffic in bulk at reseller rates. Traffic is stored in your reseller balance per proxy type.
+  
+
+  #### Create Sub-Users
+
+    Create sub-users and allocate traffic from your balance. Each sub-user gets their own proxy credentials.
+  
+
+  #### Manage & Monitor
+
+    Track traffic usage, manage blocklists/whitelists, and add/remove traffic per sub-user.
+  
+
+
+
+
+## Key Concepts
+
+| Concept | Description |
+|---------|-------------|
+| **Reseller Key** | UUID key used to obtain access tokens |
+| **Access Token** | Bearer token for API authentication (does not expire) |
+| **Traffic Balance** | Pre-purchased traffic pool per proxy type (residential, mobile, etc.) |
+| **Sub-User** | An end-user created by the reseller with allocated traffic |
+
+## Rate Limits
+
+The Reseller API has higher rate limits than the public API:
+
+| Window | Limit |
+|--------|-------|
+| Per minute | 120 requests |
+| Per hour | 3,000 requests |
+
+## Available Operations
+
+
+
+  - **[Authentication](/api-reference/reseller/authentication):
+    Get access tokens using your reseller key
+  
+  - **[Sub-Users](/api-reference/reseller/list-sub-users):
+    Create, manage, and delete sub-users
+  
+  - **[Traffic](/api-reference/reseller/add-traffic):
+    Allocate and remove traffic for sub-users
+  
+  - **[Blocklist & Whitelist](/api-reference/reseller/blocklist-list):
+    Control domain blocking and IP whitelisting per sub-user
+  
+
+

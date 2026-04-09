@@ -1,0 +1,107 @@
+---
+title: 'Формат ответов'
+description: 'Стандартный формат ответов всех эндпоинтов API'
+---
+
+Все ответы API используют единый JSON-формат.
+
+## Успешные ответы
+
+### Один ресурс
+
+```json
+{
+  "data": {
+    "id": "a1b2c3d4-e5f6-7890-abcd-ef1234567890",
+    "name": "US Residential #1",
+    "type": "residential",
+    "country": "US"
+  }
+}
+```
+
+### Список ресурсов
+
+```json
+{
+  "data": [
+    { "id": 1, "name": "Proxy #1" },
+    { "id": 2, "name": "Proxy #2" }
+  ],
+  "total": 2
+}
+```
+
+### Пагинированный список
+
+```json
+{
+  "data": [
+    { "id": 1, "type": "deposit", "amount": 10.00 }
+  ],
+  "meta": {
+    "current_page": 1,
+    "last_page": 5,
+    "per_page": 20,
+    "total": 100
+  }
+}
+```
+
+### Создание / Обновление
+
+```json
+{
+  "message": "Proxy created successfully.",
+  "data": {
+    "id": "a1b2c3d4-e5f6-7890-abcd-ef1234567890",
+    "name": "US Residential #1"
+  }
+}
+```
+
+### Удаление
+
+```json
+{
+  "message": "Proxy deleted successfully."
+}
+```
+
+## Ответы с ошибками
+
+```json
+{
+  "error": {
+    "code": 2001,
+    "message": "Validation failed.",
+    "description": "One or more fields did not pass validation.",
+    "field": "country",
+    "errors": [
+      {
+        "field": "country",
+        "message": "The country field is required."
+      }
+    ]
+  }
+}
+```
+
+Полный список — в разделе [Коды ошибок](/essentials/error-codes).
+
+## HTTP статус-коды
+
+| Статус | Значение |
+|--------|----------|
+| `200` | Успех |
+| `201` | Ресурс создан |
+| `400` | Неверный запрос / ошибка бизнес-логики |
+| `401` | Требуется аутентификация |
+| `402` | Недостаточно средств |
+| `403` | Доступ запрещён |
+| `404` | Ресурс не найден |
+| `409` | Конфликт (дубликат ресурса) |
+| `422` | Ошибка валидации |
+| `429` | Превышен лимит запросов |
+| `500` | Внутренняя ошибка сервера |
+| `503` | Сервис временно недоступен |

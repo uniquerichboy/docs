@@ -1,0 +1,82 @@
+---
+title: 'Domain Blocklist'
+description: 'Block unwanted domains from being accessed through your proxies'
+---
+
+The domain blocklist prevents specific domains from being accessed through your proxies. This is useful for blocking ads, trackers, or unwanted traffic that consumes your bandwidth.
+
+## Adding a Domain
+
+```bash
+curl -X POST https://api.soxway.io/v1/account/blocklist \
+  -H "Authorization: Bearer YOUR_TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "pattern": "ads.example.com",
+    "comment": "Block ad network"
+  }'
+```
+
+## Bulk Adding Domains
+
+Add up to **500 domains** in a single request:
+
+```bash
+curl -X POST https://api.soxway.io/v1/account/blocklist/bulk \
+  -H "Authorization: Bearer YOUR_TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "entries": [
+      "ads.example.com",
+      "tracker.example.net",
+      "analytics.unwanted.io"
+    ]
+  }'
+```
+
+```json
+{
+  "inserted": 3,
+  "skipped": 0,
+  "total_requested": 3
+}
+```
+
+Duplicates are automatically skipped.
+
+## Listing Blocked Domains
+
+```bash
+curl https://api.soxway.io/v1/account/blocklist \
+  -H "Authorization: Bearer YOUR_TOKEN"
+```
+
+## Exporting as CSV
+
+Download your entire blocklist:
+
+```bash
+curl https://api.soxway.io/v1/account/blocklist/export \
+  -H "Authorization: Bearer YOUR_TOKEN" \
+  -o blocklist.csv
+```
+
+## Removing a Domain
+
+```bash
+curl -X DELETE https://api.soxway.io/v1/account/blocklist/1 \
+  -H "Authorization: Bearer YOUR_TOKEN"
+```
+
+## Common Use Cases
+
+| Use Case | Patterns to Block |
+|----------|-------------------|
+| Ad blocking | `ads.doubleclick.net`, `pagead2.googlesyndication.com` |
+| Tracker blocking | `analytics.google.com`, `pixel.facebook.com` |
+| Bandwidth saving | Large media domains you don't need |
+| Security | Known malware domains |
+
+> **Note:**
+  Blocklist changes take effect immediately. Any in-progress connections to blocked domains will complete, but new connections will be rejected.
+

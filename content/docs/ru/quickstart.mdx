@@ -1,0 +1,169 @@
+---
+title: 'Быстрый старт'
+description: 'Запустите свой первый прокси за 5 минут'
+---
+
+## Шаг 1: Создайте аккаунт
+
+Зарегистрируйтесь на [my.soxway.io](https://my.soxway.io) и пополните баланс.
+
+## Шаг 2: Получите API-токен
+
+
+
+```bash cURL
+curl -X POST https://api.soxway.io/v1/auth/token \
+  -H "Content-Type: application/json" \
+  -d '{
+    "email": "you@example.com",
+    "password": "ваш-пароль",
+    "token_name": "my-app"
+  }'
+```
+
+```python Python
+import requests
+
+response = requests.post("https://api.soxway.io/v1/auth/token", json={
+    "email": "you@example.com",
+    "password": "ваш-пароль",
+    "token_name": "my-app"
+})
+
+token = response.json()["data"]["token"]
+print(f"Токен: {token}")
+```
+
+```javascript Node.js
+const response = await fetch("https://api.soxway.io/v1/auth/token", {
+  method: "POST",
+  headers: { "Content-Type": "application/json" },
+  body: JSON.stringify({
+    email: "you@example.com",
+    password: "ваш-пароль",
+    token_name: "my-app"
+  })
+});
+
+const { data } = await response.json();
+console.log(`Токен: ${data.token}`);
+```
+
+
+
+Сохраните `token` из ответа. Он понадобится для всех API-вызовов.
+
+## Шаг 3: Создайте прокси
+
+
+
+```bash cURL
+curl -X POST https://api.soxway.io/v1/proxies \
+  -H "Authorization: Bearer ВАШ_ТОКЕН" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "type": "residential",
+    "country": "US",
+    "behavior": "rotate",
+    "rotate_type": "each_request"
+  }'
+```
+
+```python Python
+import requests
+
+headers = {"Authorization": "Bearer ВАШ_ТОКЕН"}
+
+response = requests.post("https://api.soxway.io/v1/proxies",
+    headers=headers,
+    json={
+        "type": "residential",
+        "country": "US",
+        "behavior": "rotate",
+        "rotate_type": "each_request"
+    }
+)
+
+proxy = response.json()["data"]
+print(f"HTTP:   {proxy['proxy_http']}")
+print(f"SOCKS5: {proxy['proxy_socks5']}")
+```
+
+```javascript Node.js
+const response = await fetch("https://api.soxway.io/v1/proxies", {
+  method: "POST",
+  headers: {
+    "Authorization": "Bearer ВАШ_ТОКЕН",
+    "Content-Type": "application/json"
+  },
+  body: JSON.stringify({
+    type: "residential",
+    country: "US",
+    behavior: "rotate",
+    rotate_type: "each_request"
+  })
+});
+
+const { data } = await response.json();
+console.log(`HTTP: ${data.proxy_http}`);
+console.log(`SOCKS5: ${data.proxy_socks5}`);
+```
+
+
+
+## Шаг 4: Используйте прокси
+
+В ответе будут готовые URL-ы для подключения:
+
+
+
+```bash cURL
+# HTTP прокси
+curl -x http://user:pass@proxy.soxway.io:8080 https://httpbin.org/ip
+
+# SOCKS5 прокси
+curl -x socks5://user:pass@proxy.soxway.io:1080 https://httpbin.org/ip
+```
+
+```python Python
+import requests
+
+proxies = {
+    "http": "http://user:pass@proxy.soxway.io:8080",
+    "https": "http://user:pass@proxy.soxway.io:8080"
+}
+
+response = requests.get("https://httpbin.org/ip", proxies=proxies)
+print(response.json())
+```
+
+```javascript Node.js
+import { HttpsProxyAgent } from 'https-proxy-agent';
+
+const agent = new HttpsProxyAgent('http://user:pass@proxy.soxway.io:8080');
+
+const response = await fetch('https://httpbin.org/ip', { agent });
+const data = await response.json();
+console.log(data);
+```
+
+
+
+## Что дальше?
+
+
+
+  - **[Настройка прокси](/guides/proxy-customization):
+    Ротация, стики-сессии и лимиты трафика
+  
+  - **[Гео-таргетинг](/guides/geo-targeting):
+    Таргетинг по странам, регионам и городам
+  
+  - **[Коды ошибок](/essentials/error-codes):
+    Справочник ошибок API
+  
+  - **[Лимиты запросов](/essentials/rate-limits):
+    Rate limiting политики
+  
+
+

@@ -1,0 +1,22 @@
+---
+title: 'Reseller Authentication'
+
+---
+
+> **Info:**
+  **Two-step authentication**: First exchange your Reseller Key for an access token, then use the Bearer token for all subsequent requests.
+
+
+## Authentication Flow
+
+```bash
+# Step 1: Exchange key for token
+curl -X POST https://api.soxway.io/reseller/access-token \
+  -H "X-Reseller-Key: your-reseller-key-uuid"
+
+# Step 2: Use the token
+curl https://api.soxway.io/reseller/sub-users \
+  -H "Authorization: Bearer YOUR_ACCESS_TOKEN"
+```
+
+The access token does not expire by default. Regenerating your reseller key will invalidate the previous token.

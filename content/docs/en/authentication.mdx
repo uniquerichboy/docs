@@ -1,0 +1,84 @@
+---
+title: 'Authentication'
+description: 'How to authenticate with the Soxway API'
+---
+
+Soxway uses **Bearer token** authentication. There are two authentication methods depending on whether you're a regular user or a reseller.
+
+## Public API (Users)
+
+### Getting a Token
+
+Exchange your email and password for a personal access token:
+
+```bash
+curl -X POST https://api.soxway.io/v1/auth/token \
+  -H "Content-Type: application/json" \
+  -d '{
+    "email": "you@example.com",
+    "password": "your-password",
+    "token_name": "my-app"
+  }'
+```
+
+### Using the Token
+
+Include the token in the `Authorization` header:
+
+```bash
+curl https://api.soxway.io/v1/proxies \
+  -H "Authorization: Bearer 1|abc123def456..."
+```
+
+### Token Management
+
+- Tokens are **long-lived** and do not expire automatically
+- You can create multiple tokens with different names
+- Revoke tokens individually via [DELETE /v1/auth/tokens/\{id\}](/api-reference/auth/revoke-token)
+- List all tokens via [GET /v1/auth/tokens](/api-reference/auth/list-tokens)
+
+> **Warning:**
+  The token issuance endpoint is rate limited to **5 requests per minute** per IP address to prevent brute-force attacks.
+
+
+## Reseller API
+
+Resellers use a two-step authentication process:
+
+### Step 1: Get Your Reseller Key
+
+Generate a reseller key from the [dashboard](https://my.soxway.io/reseller) or via the API. This key is a UUID that you'll exchange for an access token.
+
+### Step 2: Exchange Key for Token
+
+```bash
+curl -X POST https://api.soxway.io/reseller/access-token \
+  -H "X-Reseller-Key: your-reseller-key-uuid"
+```
+
+### Step 3: Use the Access Token
+
+```bash
+curl https://api.soxway.io/reseller/sub-users \
+  -H "Authorization: Bearer YOUR_ACCESS_TOKEN"
+```
+
+> **Note:**
+  Reseller access tokens **do not expire** by default. You can regenerate your reseller key at any time, which invalidates the previous token.
+
+
+> **Info:**
+  Resellers who access the API through the dashboard (Sanctum session) must have **Two-Factor Authentication** enabled.
+
+
+## Error Responses
+
+| Status | Error Code | Description |
+|--------|-----------|-------------|
+| 401 | 1001 | Missing authentication token |
+| 401 | 1002 | Invalid credentials |
+| 401 | 1003 | Token has expired |
+| 401 | 1004 | Invalid token |
+| 403 | 1005 | Insufficient permissions |
+| 403 | 1006 | Two-factor authentication required |
+| 403 | 1007 | Reseller access not enabled |

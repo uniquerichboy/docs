@@ -1,0 +1,76 @@
+---
+title: 'IP Whitelist'
+description: 'Restrict proxy access to trusted IP addresses'
+---
+
+The IP whitelist allows you to restrict which IP addresses can use your proxies. Only whitelisted IPs will be allowed to connect.
+
+## How It Works
+
+When you add IPs to your whitelist, only traffic from those IPs will be forwarded through your proxies. All other connections are rejected.
+
+> **Info:**
+  If your whitelist is empty, proxy access is controlled only by username/password authentication.
+
+
+## Adding an IP
+
+```bash
+curl -X POST https://api.soxway.io/v1/account/whitelist \
+  -H "Authorization: Bearer YOUR_TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "ip_or_cidr": "203.0.113.42",
+    "comment": "Office server"
+  }'
+```
+
+### CIDR Notation
+
+You can whitelist entire subnets using CIDR notation:
+
+```json
+{
+  "ip_or_cidr": "203.0.113.0/24",
+  "comment": "Office network"
+}
+```
+
+## Listing Whitelisted IPs
+
+```bash
+curl https://api.soxway.io/v1/account/whitelist \
+  -H "Authorization: Bearer YOUR_TOKEN"
+```
+
+```json
+{
+  "data": [
+    {
+      "id": 1,
+      "ip_or_cidr": "203.0.113.42",
+      "comment": "Office server",
+      "created_at": "2025-01-15T10:30:00Z"
+    }
+  ],
+  "total": 1
+}
+```
+
+## Removing an IP
+
+```bash
+curl -X DELETE https://api.soxway.io/v1/account/whitelist/1 \
+  -H "Authorization: Bearer YOUR_TOKEN"
+```
+
+## Best Practices
+
+> **Warning:**
+  Be careful when modifying the whitelist. Removing the IP you're currently connecting from will immediately block your access.
+
+
+- Always whitelist your current IP before enabling IP-based restrictions
+- Use CIDR notation for dynamic IP ranges (e.g., `/24` for a full subnet)
+- Add a descriptive `comment` to each entry so you remember what each IP is for
+- If you're using cloud servers, whitelist the server's static IP

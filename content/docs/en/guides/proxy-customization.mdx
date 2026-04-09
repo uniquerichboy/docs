@@ -1,0 +1,132 @@
+---
+title: 'Proxy Customization'
+description: 'Configure rotation, sticky sessions, traffic limits, and more'
+---
+
+## Rotation Behavior
+
+Soxway proxies support two behaviors:
+
+### Rotating Proxies (`behavior: "rotate"`)
+
+A new IP address is assigned based on your rotation settings:
+
+| Rotate Type | Description |
+|-------------|-------------|
+| `each_request` | New IP on every HTTP request |
+| `interval` | New IP every N minutes (1-1440) |
+
+```bash
+curl -X POST https://api.soxway.io/v1/proxies \
+  -H "Authorization: Bearer YOUR_TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "type": "residential",
+    "country": "US",
+    "behavior": "rotate",
+    "rotate_type": "interval",
+    "rotate_interval": 10
+  }'
+```
+
+> **Info:**
+  **Rotate interval** is in minutes. Set `rotate_interval: 10` for a new IP every 10 minutes. Maximum is 1440 (24 hours).
+
+
+### Sticky Sessions (`behavior: "keep"`)
+
+The same IP is maintained for the lifetime of the session. This is useful for:
+- Logging into websites
+- Multi-step workflows
+- Maintaining session cookies
+
+```bash
+curl -X POST https://api.soxway.io/v1/proxies \
+  -H "Authorization: Bearer YOUR_TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "type": "residential",
+    "country": "US",
+    "behavior": "keep"
+  }'
+```
+
+## Traffic Limits
+
+Set a traffic limit to prevent a proxy from exceeding a specific amount of data:
+
+```bash
+curl -X POST https://api.soxway.io/v1/proxies \
+  -H "Authorization: Bearer YOUR_TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "type": "residential",
+    "country": "US",
+    "behavior": "rotate",
+    "rotate_type": "each_request",
+    "traffic_limit": 5.0
+  }'
+```
+
+The `traffic_limit` is in **GB**. When the limit is reached, the proxy stops forwarding traffic.
+
+## Naming Proxies
+
+Give proxies meaningful names to organize them:
+
+```bash
+curl -X POST https://api.soxway.io/v1/proxies \
+  -H "Authorization: Bearer YOUR_TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "name": "Scraper - US West Coast",
+    "type": "residential",
+    "country": "US",
+    "region": "California",
+    "behavior": "rotate",
+    "rotate_type": "each_request"
+  }'
+```
+
+## Updating Configuration
+
+You can update most proxy settings after creation:
+
+```bash
+curl -X PUT https://api.soxway.io/v1/proxies/\{id\} \
+  -H "Authorization: Bearer YOUR_TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "name": "Updated Name",
+    "country": "DE",
+    "behavior": "keep"
+  }'
+```
+
+> **Warning:**
+  Changing the **country** may take a moment as the proxy needs to be re-provisioned through the gateway.
+
+
+## Monitoring Traffic
+
+### All Proxies
+
+```bash
+curl https://api.soxway.io/v1/proxies/traffic \
+  -H "Authorization: Bearer YOUR_TOKEN"
+```
+
+Returns traffic for each proxy:
+- `today_mb` — traffic used today
+- `yesterday_mb` — traffic used yesterday
+- `all_time_mb` — total traffic used
+- `price_per_gb` — current price per GB
+
+### Single Proxy Analytics
+
+```bash
+curl https://api.soxway.io/v1/proxies/\{id\}/analytics?period=today \
+  -H "Authorization: Bearer YOUR_TOKEN"
+```
+
+Available periods: `today`, `yesterday`, `all`

@@ -1,0 +1,63 @@
+---
+title: 'Управление трафиком'
+description: 'Мониторинг и контроль использования трафика'
+---
+
+Soxway работает по модели **pay-as-you-go**. Оплата за ГБ использованного трафика с тарифными ступенями для больших объёмов.
+
+## Проверка баланса
+
+```bash
+curl https://api.soxway.io/v1/account/balance \
+  -H "Authorization: Bearer ВАШ_ТОКЕН"
+```
+
+## Тарифные ступени
+
+```bash
+curl https://api.soxway.io/v1/account/categories \
+  -H "Authorization: Bearer ВАШ_ТОКЕН"
+```
+
+## Мониторинг трафика
+
+### По каждому прокси
+
+```bash
+curl https://api.soxway.io/v1/proxies/traffic \
+  -H "Authorization: Bearer ВАШ_ТОКЕН"
+```
+
+### По всему аккаунту
+
+```bash
+curl "https://api.soxway.io/v1/account/traffic?period=24h" \
+  -H "Authorization: Bearer ВАШ_ТОКЕН"
+```
+
+## Установка лимитов
+
+Защитите себя от неожиданных расходов с помощью лимитов трафика на прокси:
+
+```json
+{
+  "type": "residential",
+  "country": "US",
+  "behavior": "rotate",
+  "traffic_limit": 5.0
+}
+```
+
+При достижении `traffic_limit` (в ГБ) прокси перестаёт пропускать запросы.
+
+## История транзакций
+
+```bash
+curl "https://api.soxway.io/v1/account/transactions?per_page=10" \
+  -H "Authorization: Bearer ВАШ_ТОКЕН"
+```
+
+Типы транзакций:
+- `deposit` — пополнение
+- `purchase` — покупка трафика или продукта
+- `refund` — возврат средств

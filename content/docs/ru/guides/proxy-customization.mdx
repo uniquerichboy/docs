@@ -1,0 +1,110 @@
+---
+title: 'Кастомизация прокси'
+description: 'Настройка ротации, стики-сессий, лимитов трафика и другого'
+---
+
+## Поведение ротации
+
+Прокси Soxway поддерживают два режима:
+
+### Ротация (`behavior: "rotate"`)
+
+Новый IP-адрес назначается в зависимости от настроек:
+
+| Тип ротации | Описание |
+|-------------|----------|
+| `each_request` | Новый IP на каждый HTTP-запрос |
+| `interval` | Новый IP каждые N минут (1-1440) |
+
+```bash
+curl -X POST https://api.soxway.io/v1/proxies \
+  -H "Authorization: Bearer ВАШ_ТОКЕН" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "type": "residential",
+    "country": "US",
+    "behavior": "rotate",
+    "rotate_type": "interval",
+    "rotate_interval": 10
+  }'
+```
+
+> **Info:**
+  **Интервал ротации** указывается в минутах. `rotate_interval: 10` = новый IP каждые 10 минут. Максимум — 1440 (24 часа).
+
+
+### Стики-сессии (`behavior: "keep"`)
+
+Один и тот же IP сохраняется на протяжении сессии. Подходит для:
+- Авторизации на сайтах
+- Многоэтапных сценариев
+- Сохранения сессионных куки
+
+```bash
+curl -X POST https://api.soxway.io/v1/proxies \
+  -H "Authorization: Bearer ВАШ_ТОКЕН" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "type": "residential",
+    "country": "US",
+    "behavior": "keep"
+  }'
+```
+
+## Лимиты трафика
+
+Установите лимит трафика чтобы прокси не превышал указанный объём:
+
+```bash
+curl -X POST https://api.soxway.io/v1/proxies \
+  -H "Authorization: Bearer ВАШ_ТОКЕН" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "type": "residential",
+    "country": "US",
+    "behavior": "rotate",
+    "rotate_type": "each_request",
+    "traffic_limit": 5.0
+  }'
+```
+
+`traffic_limit` указывается в **ГБ**. При достижении лимита прокси перестаёт пропускать трафик.
+
+## Именование прокси
+
+Давайте прокси понятные имена для удобства:
+
+```json
+{
+  "name": "Скрапер - US Западное побережье",
+  "type": "residential",
+  "country": "US",
+  "region": "California",
+  "behavior": "rotate",
+  "rotate_type": "each_request"
+}
+```
+
+## Мониторинг трафика
+
+### Все прокси
+
+```bash
+curl https://api.soxway.io/v1/proxies/traffic \
+  -H "Authorization: Bearer ВАШ_ТОКЕН"
+```
+
+Возвращает трафик для каждого прокси:
+- `today_mb` — использовано сегодня
+- `yesterday_mb` — использовано вчера
+- `all_time_mb` — всего использовано
+- `price_per_gb` — текущая цена за ГБ
+
+### Аналитика одного прокси
+
+```bash
+curl "https://api.soxway.io/v1/proxies/\{id\}/analytics?period=today" \
+  -H "Authorization: Bearer ВАШ_ТОКЕН"
+```
+
+Доступные периоды: `today`, `yesterday`, `all`

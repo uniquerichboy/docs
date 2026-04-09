@@ -1,0 +1,119 @@
+---
+title: 'Traffic Management'
+description: 'Monitor and control your traffic usage'
+---
+
+Soxway uses a **pay-as-you-go** model. You're billed per GB of traffic used, with tiered pricing for higher volumes.
+
+## Checking Your Balance
+
+```bash
+curl https://api.soxway.io/v1/account/balance \
+  -H "Authorization: Bearer YOUR_TOKEN"
+```
+
+```json
+{
+  "data": {
+    "balance": 25.50,
+    "currency": "USD"
+  }
+}
+```
+
+## Pricing Tiers
+
+Get current pricing with the categories endpoint:
+
+```bash
+curl https://api.soxway.io/v1/account/categories \
+  -H "Authorization: Bearer YOUR_TOKEN"
+```
+
+```json
+{
+  "data": [
+    {
+      "slug": "residential",
+      "name": "Residential",
+      "tiers": [
+        { "min_gb": 0, "max_gb": 10, "price_per_gb": 3.50 },
+        { "min_gb": 10, "max_gb": 100, "price_per_gb": 3.00 },
+        { "min_gb": 100, "max_gb": null, "price_per_gb": 2.50 }
+      ]
+    }
+  ]
+}
+```
+
+## Monitoring Traffic
+
+### Per Proxy
+
+```bash
+curl https://api.soxway.io/v1/proxies/traffic \
+  -H "Authorization: Bearer YOUR_TOKEN"
+```
+
+Returns traffic breakdown per proxy:
+- `today_mb` — megabytes used today
+- `yesterday_mb` — megabytes used yesterday
+- `all_time_mb` — total megabytes used
+
+### Account-Wide
+
+```bash
+curl "https://api.soxway.io/v1/account/traffic?period=24h" \
+  -H "Authorization: Bearer YOUR_TOKEN"
+```
+
+### Plan Usage
+
+```bash
+curl "https://api.soxway.io/v1/account/plan?type=residential" \
+  -H "Authorization: Bearer YOUR_TOKEN"
+```
+
+```json
+{
+  "data": {
+    "limit_bytes": 10737418240,
+    "used_bytes": 2147483648,
+    "remaining_bytes": 8589934592,
+    "plan_name": "Residential Pay As You Go"
+  }
+}
+```
+
+## Setting Traffic Limits
+
+Prevent runaway costs by setting per-proxy traffic limits:
+
+```bash
+curl -X POST https://api.soxway.io/v1/proxies \
+  -H "Authorization: Bearer YOUR_TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "type": "residential",
+    "country": "US",
+    "behavior": "rotate",
+    "rotate_type": "each_request",
+    "traffic_limit": 5.0
+  }'
+```
+
+When a proxy reaches its `traffic_limit` (in GB), it stops forwarding requests.
+
+## Transaction History
+
+Track all charges and deposits:
+
+```bash
+curl "https://api.soxway.io/v1/account/transactions?per_page=10" \
+  -H "Authorization: Bearer YOUR_TOKEN"
+```
+
+Transaction types:
+- `deposit` — funds added to account
+- `purchase` — traffic or product purchase
+- `refund` — refunded amount

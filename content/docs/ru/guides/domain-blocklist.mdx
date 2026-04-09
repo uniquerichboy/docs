@@ -1,0 +1,59 @@
+---
+title: 'Блокировка доменов'
+description: 'Блокировка нежелательных доменов на уровне прокси'
+---
+
+Блоклист доменов предотвращает доступ к указанным доменам через ваши прокси. Полезно для блокировки рекламы, трекеров и нежелательного трафика.
+
+## Добавление домена
+
+```bash
+curl -X POST https://api.soxway.io/v1/account/blocklist \
+  -H "Authorization: Bearer ВАШ_ТОКЕН" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "pattern": "ads.example.com",
+    "comment": "Блокировка рекламной сети"
+  }'
+```
+
+## Массовое добавление
+
+До **500 доменов** за один запрос:
+
+```bash
+curl -X POST https://api.soxway.io/v1/account/blocklist/bulk \
+  -H "Authorization: Bearer ВАШ_ТОКЕН" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "entries": ["ads.example.com", "tracker.example.net", "analytics.unwanted.io"]
+  }'
+```
+
+Дубликаты пропускаются автоматически.
+
+## Список заблокированных доменов
+
+```bash
+curl https://api.soxway.io/v1/account/blocklist \
+  -H "Authorization: Bearer ВАШ_ТОКЕН"
+```
+
+## Экспорт в CSV
+
+```bash
+curl https://api.soxway.io/v1/account/blocklist/export \
+  -H "Authorization: Bearer ВАШ_ТОКЕН" \
+  -o blocklist.csv
+```
+
+## Удаление домена
+
+```bash
+curl -X DELETE https://api.soxway.io/v1/account/blocklist/1 \
+  -H "Authorization: Bearer ВАШ_ТОКЕН"
+```
+
+> **Note:**
+  Изменения блоклиста вступают в силу немедленно. Текущие соединения завершатся, но новые будут отклонены.
+
